@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+pandas
+openpyxl
+playwright
+jinja2
+python-multipart
+aiofiles
+gunicorn
