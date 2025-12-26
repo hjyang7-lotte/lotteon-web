@@ -84,7 +84,7 @@ class WConceptCrawler:
                 """)
                 
                 self.log("Navigating to best products page...")
-                page.goto(url, timeout=90000, wait_until="domcontentloaded")
+                page.goto(url, timeout=120000, wait_until="domcontentloaded")
                 
                 try:
                     page.wait_for_load_state("networkidle", timeout=30000)
@@ -377,7 +377,7 @@ class WConceptCrawler:
         
         try:
             # 상세 페이지로 이동
-            page.goto(detail_url, timeout=30000, wait_until="domcontentloaded")
+            page.goto(detail_url, timeout=60000, wait_until="domcontentloaded")
             time.sleep(1.5)
             
             # 팝업 닫기
