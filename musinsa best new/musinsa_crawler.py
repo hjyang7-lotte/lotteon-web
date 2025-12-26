@@ -68,7 +68,7 @@ class MusinsaCrawler:
             
             # 1. 페이지 로딩 (속도 우선)
             try:
-                await page.goto(product_url, wait_until="domcontentloaded", timeout=30000)
+                await page.goto(product_url, wait_until="domcontentloaded", timeout=60000)
             except Exception as e:
                 self.log(f"페이지 로드 타임아웃 (무시): {e}")
 
@@ -192,13 +192,13 @@ class MusinsaCrawler:
                 self.log(f"{category} 카테고리 페이지 로딩 중...")
                 # 페이지 로드 전략 간소화: domcontentloaded만 기다리고 바로 시작 (속도 향상)
                 try:
-                    await page.goto(url, wait_until="domcontentloaded", timeout=45000)
+                    await page.goto(url, wait_until="domcontentloaded", timeout=90000)
                 except Exception as e:
                     self.log(f"초기 로딩 타임아웃 (계속 진행): {e}")
 
                 # 상품이 로드될 때까지 잠시 대기
                 try:
-                    await page.wait_for_selector('a.gtm-select-item', timeout=10000)
+                    await page.wait_for_selector('a.gtm-select-item', timeout=20000)
                 except:
                     self.log("상품 목록 선택자 대기 실패, 스크롤 시도")
 
@@ -218,7 +218,7 @@ class MusinsaCrawler:
                         break
 
                     await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                    await page.wait_for_timeout(1000) # 대기 시간 단축
+                    await page.wait_for_timeout(2000) # 대기 시간 조금 늘림 안정성 확보
                     
                     # 스크롤 후 상품 개수 확인
                     new_count = len(await page.query_selector_all('a.gtm-select-item'))
@@ -227,7 +227,7 @@ class MusinsaCrawler:
                         break
                 
                 # 페이지가 완전히 로드될 때까지 추가 대기
-                await page.wait_for_timeout(5000)
+                await page.wait_for_timeout(8000)
                 
                 # JavaScript 실행 완료 대기 - 상품이 동적으로 로드될 수 있음
                 self.log("JavaScript 실행 완료 대기 중...")
