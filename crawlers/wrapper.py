@@ -86,6 +86,20 @@ except Exception as e:
 
 # --- Wrappers ---
 
+class MockRoot:
+    def __init__(self):
+        self.value = None
+    def get(self): return self.value
+    def set(self, v): self.value = v
+    def update(self): pass
+    def quit(self): pass
+    def destroy(self): pass
+    def title(self, *args): pass
+    def geometry(self, *args): pass
+    def resizable(self, *args): pass
+    def mainloop(self): pass
+
+
 class UnifiedMusinsaCrawler:
     def __init__(self, request_id):
         self.request_id = request_id
