@@ -21,6 +21,16 @@ from crawlers.wrapper import (
     get_crawl_result, clear_crawl_result, WConceptCrawler, set_stop_signal
 )
 
+
+# Force Playwright install on Render
+import subprocess
+try:
+    print("Checking and installing Playwright browsers...", flush=True)
+    subprocess.run(["playwright", "install", "chromium"], check=True)
+    print("Playwright browsers installed.", flush=True)
+except Exception as e:
+    print(f"Error installing browsers: {e}", flush=True)
+
 app = FastAPI(title="Lotte On Sourcing Helper")
 
 # CORS
