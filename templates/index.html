@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>롯데온 소싱 도우미</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        .log-area {
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+
+        }
+
+        [v-cloak] {
+            display: none !important;
+        }
+    </style>
+
+</head>
+
+<body class="bg-slate-950 min-h-screen text-slate-200 font-sans selection:bg-indigo-500 selection:text-white">
+    <div id="app" class="max-w-5xl mx-auto min-h-screen flex flex-col relative pb-20 px-8" v-cloak>
+        <!-- Top Banner: Fair Trade Commission -->
+
+        <!-- Tab: Results (Home) -->
+        <div v-if="activeTab === 'results'" class="flex-1 flex flex-col pt-4 animate-fade-in">
+            <header class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-5xl font-bold text-white tracking-tight">크롤링 결과</h1>
+                    <p class="text-xl text-slate-400 mt-2">W컨셉, 29CM, 무신사</p>
+                </div><button @click="fetchFiles"
+                    class="p-4 rounded-full hover:bg-slate-800 transition text-slate-400 hover:text-white"><svg
+                        xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg></button>
+            </header>
+            <!-- Status Card -->
+            <div class="mb-8 relative overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl">
+                <!-- Background Graphic -->
+                <div
+                    class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse">
+                </div>
+                <div
+                    class="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse">
+                </div>
+                <div class="relative z-10">
+                    <div class="flex items-center space-x-2 mb-2"><span class="flex h-3 w-3 relative"><span
+                                v-if="isRunning"
+                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span
+                                :class="isRunning ? 'bg-green-500' : 'bg-slate-500'"
+                                class="relative inline-flex rounded-full h-3 w-3"></span></span><span
+                            class="text-sm font-semibold" :class="isRunning ? 'text-green-400' : 'text-slate-400'"> {{
+                            isRunning ? '크롤링 진행 중...': '최근 크롤링 완료'
+                            }}
+
+                        </span></div>
+                    <h3 class="text-3xl font-bold text-white mb-1"> {{
+                        lastCrawlTime || '오늘 • --:--'
+                        }}
+
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-6 font-mono"> {{
+                        lastCrawlMsg || '대기 중...'
+                        }}
+
+                    </p><button @click="showLogs = true"
+                        class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium py-3 px-4 rounded-xl transition flex items-center justify-center space-x-2 border border-slate-700"><svg
+                            xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg><span>로그 보기</span></button>
+                </div>
+            </div>
+            <!-- Result Files List -->
+            <div class="flex-1 overflow-y-auto">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between"><span>결과
+                        파일</span><span class="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-full">신규 {{
+                        files.length
+                        }}
+
+                        건</span></h3>
+                <div v-if="files.length === 0" class="text-center py-10 text-slate-600">
+                    <p>저장된 파일이 없습니다.</p>
+                </div>
+                <div class="space-y-3">
+                    <div v-for="file in files" :key="file.filename"
+                        class="group bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-4 transition duration-200 flex items-center justify-between">
+                        <div class="flex items-center space-x-4 overflow-hidden">
+                            <div
+                                class="flex-shrink-0 w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <h4
+                                    class="text-sm font-medium text-slate-200 truncate pr-2 group-hover:text-white transition">
+                                    {{
+                                    file.filename
+                                    }}
+
+                                </h4>
+                                <p class="text-xs text-slate-500"> {{
+                                    formatSize(file.size)
+                                    }}
+
+                                    • {{
+                                    formatDate(file.created)
+                                    }}
+
+                                </p>
+                            </div>
+                        </div><a :href="'/api/download/' + file.filename"
+                            class="flex-shrink-0 p-2 text-slate-500 hover:text-indigo-400 transition bg-slate-950 hover:bg-slate-900 rounded-lg border border-slate-800"><svg
+                                xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg></a>
+                    </div>
+                </div>
+            </div>
+            <!-- Compliance Footer -->
+            <div class="mt-6 bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
+                <h5 class="flex items-center text-sm font-bold text-indigo-400 mb-2"><svg class="w-4 h-4 mr-2"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>규정 및 준수사항 </h5>
+                <p class="text-xs text-slate-500 mb-3 leading-relaxed">모든 크롤링 활동이 현지 전자상거래 규정을 준수하는지 확인하세요.
+                    자세한 내용은 공식 가이드라인을 참조하십시오. </p><a href="https://www.ftc.go.kr/www/bizCommList.do?key=232"
+                    target="_blank"
+                    class="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-3 rounded-lg transition shadow-lg shadow-indigo-500/20">공정거래위원회
+                    사이트 </a>
+            </div>
+        </div>
+        <!-- Tab: Settings (Crawler Pro Dashboard) -->
+        <div v-if="activeTab === 'settings'" class="flex-1 flex flex-col p-5 animate-fade-in bg-slate-950">
+            <!-- Header -->
+            <header class="mb-10 flex justify-between items-center">
+                <div>
+                    <h1 class="text-5xl font-bold text-white tracking-wide">Crawler Pro Dashboard</h1>
+                    <p class="text-lg text-slate-500 font-mono tracking-widest mt-2 uppercase">Multi-Channel Data
+                        Aggregator</p>
+                </div>
+                <div class="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </div>
+            </header>
+            <div class="flex-1 flex flex-col space-y-4 overflow-y-auto pb-20">
+                <!-- Target Sites (Accordion) -->
+                <div class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-lg">
+                    <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                        <div class="flex items-center space-x-2"><svg class="w-4 h-4 text-indigo-500" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg><span class="text-xs font-bold text-slate-300 tracking-wider">TARGET
+                                SITES</span></div><span
+                            class="text-[10px] text-indigo-400 font-mono cursor-pointer">SELECT
+                            SOURCES</span>
+                    </div>
+                    <!-- W Concept Accordion -->
+                    <div class="border-b border-slate-800/50"><button @click="setCrawlerType('wconcept')"
+                            class="w-full flex items-center justify-between p-8 hover:bg-slate-800/50 transition text-left">
+                            <div class="flex items-center space-x-6">
+                                <div :class="settings.crawler_type === 'wconcept' ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-800 border-slate-600'"
+                                    class="w-10 h-10 rounded-lg border-2 flex items-center justify-center transition">
+                                    <svg v-if="settings.crawler_type === 'wconcept'" class="w-6 h-6 text-white"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4"
+                                            d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div><span class="text-2xl font-bold"
+                                    :class="settings.crawler_type === 'wconcept' ? 'text-white' : 'text-slate-400'">W
+                                    Concept (W컨셉)</span>
+                            </div><svg class="w-8 h-8 text-slate-500 transform transition duration-200"
+                                :class="settings.crawler_type === 'wconcept' ? 'rotate-180' : ''" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div v-show="settings.crawler_type === 'wconcept'"
+                            class="bg-slate-950/30 px-10 pb-10 animate-fade-in text-left">
+                            <div class="text-sm text-slate-500 mb-5 font-mono uppercase tracking-widest font-bold">
+                                Categories</div>
+                            <div class="grid grid-cols-4 gap-6"><label v-for="cat in categoriesMap.wconcept" :key="cat"
+                                    class="flex items-center space-x-4 cursor-pointer group"><input type="radio"
+                                        v-model="settings.category" :value="cat"
+                                        class="form-radio text-indigo-600 bg-slate-800 border-slate-600 focus:ring-offset-slate-900 h-6 w-6"><span
+                                        class="text-lg text-slate-400 group-hover:text-slate-200 transition font-medium">
+                                        {{
+                                        cat
+                                        }}
+                                    </span></label></div>
+                        </div>
+                    </div>
+                    <!-- 29CM Accordion -->
+                    <div class="border-b border-slate-800/50"><button @click="setCrawlerType('29cm')"
+                            class="w-full flex items-center justify-between p-8 hover:bg-slate-800/50 transition text-left">
+                            <div class="flex items-center space-x-6">
+                                <div :class="settings.crawler_type === '29cm' ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-800 border-slate-600'"
+                                    class="w-10 h-10 rounded-lg border-2 flex items-center justify-center transition">
+                                    <svg v-if="settings.crawler_type === '29cm'" class="w-6 h-6 text-white" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4"
+                                            d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div><span class="text-lg font-bold"
+                                    :class="settings.crawler_type === '29cm' ? 'text-white' : 'text-slate-400'">29CM</span>
+                            </div><svg class="w-8 h-8 text-slate-500 transform transition duration-200"
+                                :class="settings.crawler_type === '29cm' ? 'rotate-180' : ''" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div v-show="settings.crawler_type === '29cm'"
+                            class="bg-slate-950/30 px-10 pb-10 animate-fade-in text-left">
+                            <div class="text-sm text-slate-500 mb-5 font-mono uppercase tracking-widest font-bold">
+                                Categories</div>
+                            <div class="grid grid-cols-4 gap-6 mb-6"><label v-for="cat in categoriesMap['29cm']"
+                                    :key="cat" class="flex items-center space-x-4 cursor-pointer group"><input
+                                        type="radio" v-model="settings.category" :value="cat"
+                                        class="form-radio text-indigo-600 bg-slate-800 border-slate-600 focus:ring-offset-slate-900 h-6 w-6"><span
+                                        class="text-sm text-slate-400 group-hover:text-slate-200 transition font-medium">
+                                        {{
+                                        cat
+                                        }}
+                                    </span></label></div>
+                            <!-- Keyword Input for 29CM -->
+                            <div v-if="settings.category === '직접 검색 (키워드)'" class="animate-fade-in-up mt-4"><input
+                                    type="text" v-model="settings.keyword" placeholder="Search Keywords..."
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-6 py-4 text-base text-white focus:border-indigo-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Musinsa Accordion -->
+                    <div><button @click="setCrawlerType('musinsa')"
+                            class="w-full flex items-center justify-between p-8 hover:bg-slate-800/50 transition text-left">
+                            <div class="flex items-center space-x-6">
+                                <div :class="settings.crawler_type === 'musinsa' ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-800 border-slate-600'"
+                                    class="w-10 h-10 rounded-lg border-2 flex items-center justify-center transition">
+                                    <svg v-if="settings.crawler_type === 'musinsa'" class="w-6 h-6 text-white"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4"
+                                            d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div><span class="text-lg font-bold"
+                                    :class="settings.crawler_type === 'musinsa' ? 'text-white' : 'text-slate-400'">Musinsa
+                                    (무신사)</span>
+                            </div><svg class="w-8 h-8 text-slate-500 transform transition duration-200"
+                                :class="settings.crawler_type === 'musinsa' ? 'rotate-180' : ''" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div v-show="settings.crawler_type === 'musinsa'"
+                            class="bg-slate-950/30 px-10 pb-10 animate-fade-in text-left">
+                            <div class="text-sm text-slate-500 mb-5 font-mono uppercase tracking-widest font-bold">
+                                Categories
+                            </div>
+                            <div class="grid grid-cols-4 gap-6"><label v-for="cat in categoriesMap.musinsa" :key="cat"
+                                    class="flex items-center space-x-4 cursor-pointer group"><input type="radio"
+                                        v-model="settings.category" :value="cat"
+                                        class="form-radio text-indigo-600 bg-slate-800 border-slate-600 focus:ring-offset-slate-900 h-6 w-6"><span
+                                        class="text-lg text-slate-400 group-hover:text-slate-200 transition font-medium">
+                                        {{
+                                        cat
+                                        }}
+                                    </span></label></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Config Card -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-8 shadow-2xl space-y-8">
+                <div class="grid grid-cols-2 gap-12">
+                    <!-- Collection Qty -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Collection
+                                Qty</span>
+                            <span class="text-[10px] text-slate-600 font-mono">STEP: 10</span>
+                        </div>
+                        <div class="flex items-center space-x-6">
+                            <input type="number" v-model.number="settings.count" min="10" max="100" step="10"
+                                class="w-32 bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 text-xl font-bold text-white focus:border-indigo-500 focus:outline-none transition">
+                            <div class="text-sm text-slate-500 font-medium">수집 상품 수 <span class="text-indigo-400">(최대
+                                    100)</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Browser Mode -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Browser Mode</span>
+                            <span class="text-[10px] text-slate-600 font-mono">VISUALIZATION</span>
+                        </div>
+                        <div class="flex items-center space-x-6">
+                            <!-- Toggle -->
+                            <button @click="settings.headless = !settings.headless"
+                                :class="settings.headless ? 'bg-indigo-600' : 'bg-slate-700'"
+                                class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-4 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                                <span aria-hidden="true" :class="settings.headless ? 'translate-x-6' : 'translate-x-0'"
+                                    class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                            <div class="flex flex-col">
+                                <span class="text-lg text-white font-bold leading-none">Headless Mode</span>
+                                <span class="text-xs text-slate-500 mt-1">브라우저 창을 숨기고 백그라운드에서 실행</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Action Buttons -->
+            <div class="flex space-x-3 mt-6"><button @click="startCrawl" :disabled="isRunning"
+                    class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-xl font-bold text-2xl shadow-xl shadow-indigo-900/50 flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed"><svg
+                        v-if="!isRunning" class="w-8 h-8 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                            clip-rule="evenodd"></path>
+                    </svg><svg v-else class="animate-spin -ml-1 mr-3 h-8 w-8 text-white"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg> {{
+                    isRunning ? 'Running...': 'Start Crawling'
+                    }}
+
+                </button><button @click="stopCrawl" :disabled="!isRunning"
+                    class="px-10 bg-slate-900 border-2 border-red-900/50 text-red-500 hover:bg-red-900/10 rounded-xl font-bold text-2xl transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center">
+                    <div class="w-4 h-4 bg-red-500 rounded-sm mr-3"></div>Stop
+                </button></div>
+            <!-- Embedded Log (Terminal Style) -->
+            <div
+                class="flex-1 bg-slate-950 border border-slate-800 rounded-lg flex flex-col min-h-[200px] shadow-inner font-mono text-xs">
+                <div class="flex items-center justify-between px-3 py-2 border-b border-slate-800 bg-slate-900/50">
+                    <div class="flex items-center space-x-2"><svg class="w-3 h-3 text-slate-500" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                        </svg><span class="font-bold text-slate-300">EXECUTION
+                            LOG</span><span v-if="isRunning" class="flex h-2 w-2 relative"><span
+                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span><span
+                                class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span></span><span
+                            v-if="isRunning" class="text-[10px] text-indigo-400">Running</span></div><button
+                        @click="logs = []" class="text-[9px] text-slate-500 hover:text-white uppercase">Clear
+                        Log</button>
+                </div>
+                <div ref="logContainer" class="flex-1 p-3 overflow-y-auto space-y-1 text-slate-400">
+                    <div v-for="(log, index) in logs" :key="index" class="break-all"><span class="text-slate-600 mr-2">
+                            {{
+                            log.split(']')[0]+']'
+                            }}
+
+                        </span><span :class="getLogColor(log)"> {{
+                            log.split(']').slice(1).join(']')
+                            }}
+
+                        </span></div>
+                    <div v-if="logs.length === 0"
+                        class="h-full flex flex-col items-center justify-center text-slate-700 space-y-2 opacity-50">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                            </path>
+                        </svg><span>Ready to execute...</span>
+                    </div>
+                </div>
+                <div
+                    class="px-3 py-1 bg-slate-900 border-t border-slate-800 text-[9px] text-slate-600 flex justify-between">
+                    <span>Memory: 45MB / 2048MB</span><span>Threads: {{
+                        isRunning ? '3 Active': 'Idle'
+                        }}
+
+                    </span>
+                </div>
+            </div>
+            <!-- Bottom Banner: Fair Trade Commission (Balanced Visibility) -->
+            <div
+                class="mt-8 mb-8 bg-slate-900 border-2 border-slate-800 rounded-2xl p-6 shadow-xl w-full text-center space-y-6">
+                <div class="space-y-3">
+
+                    <p class="text-base font-medium text-slate-300 leading-relaxed">
+                        더 자세한 사업자 정보는 공정거래위원회 사이트에서<br>
+                        <span class="text-indigo-400 font-bold">사업자번호</span>로 조회 후 확인 바랍니다.
+                    </p>
+                </div>
+                <a href="https://www.ftc.go.kr/www/selectBizCommList.do?key=253&token=E93DC25D-F828-D61C-BD92-E8ACEF18142563322F8BFF5A6797F4D8066AD0F91B34"
+                    target="_blank"
+                    class="inline-block w-full max-w-lg py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xl shadow-lg shadow-indigo-900/40 transition-all transform hover:scale-[1.01] active:scale-95">
+                    공정거래위원회 사이트 바로가기
+                </a>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation (Optimized Scale) -->
+        <nav
+            class="fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 pb-safe z-40">
+            <div class="max-w-5xl mx-auto flex justify-center items-center h-24 px-10 gap-20">
+                <!-- Tab: Settings -->
+                <button @click="activeTab = 'settings'"
+                    :class="activeTab === 'settings' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-200'"
+                    class="flex flex-col items-center justify-center space-y-2 transition-all duration-300 group">
+                    <div :class="activeTab === 'settings' ? 'bg-indigo-500/20 ring-4 ring-indigo-500/10 scale-110' : 'group-hover:bg-slate-800/30'"
+                        class="p-3 rounded-2xl transition-all duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                    </div>
+                    <span class="text-base font-bold tracking-tight uppercase">크롤링 시작</span>
+                </button>
+
+                <!-- Tab: Results -->
+                <button @click="activeTab = 'results'"
+                    :class="activeTab === 'results' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-200'"
+                    class="flex flex-col items-center justify-center space-y-2 transition-all duration-300 group">
+                    <div :class="activeTab === 'results' ? 'bg-indigo-500/20 ring-4 ring-indigo-500/10 scale-110' : 'group-hover:bg-slate-800/30'"
+                        class="p-3 rounded-2xl transition-all duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                    </div>
+                    <span class="text-base font-bold tracking-tight uppercase">결과</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Save Result Modal -->
+        <div v-show="showSaveModal"
+            class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+            style="display: none;">
+            <div class="bg-slate-900 rounded-2xl border border-slate-700 max-w-md w-full p-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-white">크롤링 완료 - 저장</h3>
+                    <button @click="showSaveModal = false" class="text-slate-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="hidden">
+                        <label class="block text-xs font-bold text-slate-400 mb-2">저장 경로 (서버내부)</label>
+                        <input type="text" v-model="saveSettings.path" placeholder="results"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-2">파일명</label>
+                        <div class="relative">
+                            <input type="text" v-model="saveSettings.filename" placeholder="wconcept_data_output"
+                                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none pr-16">
+                            <span class="absolute right-3 top-2 text-sm text-slate-500">.xlsx</span>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-3 pt-2">
+                        <button @click="saveResult" :disabled="!saveSettings.path || !saveSettings.filename"
+                            class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-lg font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            저장
+                        </button>
+                        <button @click="showSaveModal = false"
+                            class="px-6 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-lg font-bold text-sm transition">
+                            취소
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const activeTab = ref('settings');
+                const showLogs = ref(false);
+                const isRunning = ref(false);
+                const currentRequestId = ref(null);
+                const logs = ref([]);
+                const files = ref([]);
+                const logContainer = ref(null);
+                const pollInterval = ref(null);
+                const lastCrawlTime = ref(null);
+                const lastCrawlMsg = ref(null);
+                const showSaveModal = ref(false);
+
+                const settings = reactive({
+                    crawler_type: 'wconcept',
+                    category: '베스트탭 (메인)',
+                    keyword: '',
+                    count: 10,
+                    headless: true
+                });
+
+                const saveSettings = reactive({
+                    path: 'results',
+                    filename: 'data_output'
+                });
+
+                const categoriesMap = reactive({
+                    wconcept: ["베스트탭 (메인)", "전체", "의류", "가방", "신발", "ACC", "뷰티", "키즈"],
+                    "29cm": ["전체", "여성의류", "여성가방", "여성슈즈", "악세서리", "주얼리", "뷰티", "레저", "키즈", "남성의류", "남성가방", "남성슈즈", "직접 검색 (키워드)"],
+                    musinsa: ["전체", "상의", "아우터", "바지", "원피스", "신발", "가방", "패션소품", "속옷", "스포츠", "뷰티", "키즈"]
+                });
+
+                const currentCategories = ref(categoriesMap.wconcept);
+
+                const updateCategories = () => {
+                    currentCategories.value = categoriesMap[settings.crawler_type] || [];
+                    if (currentCategories.value.length > 0) {
+                        settings.category = currentCategories.value[0];
+                    }
+                };
+
+                const setCrawlerType = (type) => {
+                    settings.crawler_type = type;
+                    updateCategories();
+                };
+
+                const startCrawl = async () => {
+                    if (settings.crawler_type === '29cm' && settings.category === '직접 검색 (키워드)' && !settings.keyword) {
+                        alert('검색 키워드를 입력해주세요.');
+                        return;
+                    }
+
+                    isRunning.value = true;
+                    logs.value = [];
+                    try {
+                        const res = await fetch('/api/crawl', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(settings)
+                        });
+                        const data = await res.json();
+                        currentRequestId.value = data.request_id;
+                        lastCrawlTime.value = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                        lastCrawlMsg.value = `${settings.crawler_type.toUpperCase()} 크롤링 시작됨`;
+
+                        if (pollInterval.value) clearInterval(pollInterval.value);
+                        pollInterval.value = setInterval(pollLogs, 1000);
+                    } catch (e) {
+                        logs.value.push(`시스템 오류: ${e.message}`);
+                        isRunning.value = false;
+                    }
+                };
+
+                const stopCrawl = async () => {
+                    if (!currentRequestId.value) return;
+                    try {
+                        await fetch(`/api/stop/${currentRequestId.value}`, { method: 'POST' });
+                        logs.value.push("시스템: 중지 요청 전송됨...");
+                    } catch (e) {
+                        console.error(e);
+                    }
+                };
+
+                const pollLogs = async () => {
+                    if (!currentRequestId.value) return;
+                    try {
+                        const res = await fetch(`/api/status/${currentRequestId.value}`);
+                        const data = await res.json();
+
+                        if (data.logs && data.logs.length > 0) {
+                            logs.value.push(...data.logs);
+                            lastCrawlMsg.value = data.logs[data.logs.length - 1].split(']').pop().trim();
+                            nextTick(() => {
+                                if (logContainer.value) {
+                                    logContainer.value.scrollTop = logContainer.value.scrollHeight;
+                                }
+                            });
+                        }
+
+                        const lastLog = logs.value[logs.value.length - 1] || "";
+                        if (lastLog.includes("Task finished") || lastLog.includes("Critical Task Error")) {
+                            isRunning.value = false;
+                            clearInterval(pollInterval.value);
+                            if (lastLog.includes("Error")) {
+                                lastCrawlMsg.value = "오류 발생 (로그 확인)";
+                            } else {
+                                lastCrawlMsg.value = "완료됨 - 저장 대기 중";
+                                showSaveModal.value = true;
+                                saveSettings.filename = `${settings.crawler_type}_${settings.category}_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Log polling error", e);
+                    }
+                };
+
+                const fetchFiles = async () => {
+                    try {
+                        const res = await fetch('/api/files');
+                        const data = await res.json();
+                        files.value = data.files;
+                    } catch (e) {
+                        console.error(e);
+                    }
+                };
+
+                const formatSize = (bytes) => {
+                    if (bytes === 0) return '0 B';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+                };
+
+                const formatDate = (ts) => {
+                    const d = new Date(ts * 1000);
+                    const now = new Date();
+                    const diff = (now - d) / 1000;
+                    if (diff < 60) return '방금 전';
+                    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+                    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+                    return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+                };
+
+                const saveResult = async () => {
+                    if (!currentRequestId.value) {
+                        alert('크롤링 결과를 찾을 수 없습니다.');
+                        return;
+                    }
+                    try {
+                        const res = await fetch('/api/save_result', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                request_id: currentRequestId.value,
+                                save_path: saveSettings.path,
+                                filename: saveSettings.filename
+                            })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            alert(`파일이 저장되었습니다: ${data.filepath}`);
+                            showSaveModal.value = false;
+                            lastCrawlMsg.value = '저장 완료';
+                            fetchFiles();
+                        } else {
+                            const error = await res.json();
+                            alert(`저장 실패: ${error.detail}`);
+                        }
+                    } catch (e) {
+                        alert(`저장 중 오류 발생: ${e.message}`);
+                    }
+                };
+
+                const getLogColor = (log) => {
+                    if (log.toLowerCase().includes('error')) return 'text-red-400 font-bold';
+                    if (log.includes('Task finished')) return 'text-green-400 font-bold';
+                    if (log.includes('Starting')) return 'text-blue-400 font-bold';
+                    return 'text-slate-300';
+                };
+
+                onMounted(() => {
+                    fetchFiles();
+                    setInterval(fetchFiles, 5000);
+                });
+
+                return {
+                    categoriesMap, activeTab, showLogs, isRunning, logs, files, settings,
+                    saveSettings, showSaveModal, currentCategories, logContainer,
+                    lastCrawlTime, lastCrawlMsg, updateCategories, setCrawlerType,
+                    startCrawl, stopCrawl, saveResult, fetchFiles, formatSize, formatDate, getLogColor
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
